@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { request } from '@/api/client'
 
 const ENDPOINT = '/api/transform'
+const CONTRACT_ENDPOINT = '/api/transform/contracts/summary'
 const columns = [
   "模板编号",
   "关联服务",
@@ -39,13 +40,15 @@ const stats = [
   }
 ]
 
-type Row = Record<string, string | number | null>
+type Row = Record<string, any>
 
 export default function TransformView() {
   const [rows, setRows] = useState<Row[]>([])
   const [total, setTotal] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [contracts, setContracts] = useState<Row[]>([])
+  const [showContracts, setShowContracts] = useState(false)
   const filterFields = useMemo(() => columns.slice(0, 3), [])
 
   const reload = useCallback(async () => {
@@ -68,6 +71,18 @@ export default function TransformView() {
     void reload()
   }, [reload])
 
+  async function loadContracts() {
+    setShowContracts((prev) => !prev)
+    try {
+      const response = await request(CONTRACT_ENDPOINT)
+      if (!response.ok) throw new Error('编排步骤契约读取失败')
+      const payload = await response.json()
+      setContracts(payload.items ?? [])
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '编排步骤契约读取失败')
+    }
+  }
+
   async function runAction(action: string, row: Row) {
     setErrorMessage('')
     try {
@@ -89,17 +104,63 @@ export default function TransformView() {
       <header className="page-head">
         <div>
           <h2>响应转换管理</h2>
-          <p className="page-desc">维护响应转换模板的输入、执行约束与结果记录，为响应转换提供可验证的数据工程流程。</p>
+          <p className="page-desc">维护响应转换模板，并只读消费查询编排写入的编排步骤契约，按同一执行顺序与字段清单做转换。</p>
         </div>
         <div className="page-actions">
-          <button className="btn primary" type="button" onClick={() => setErrorMessage('转换模板登记入口尚未接入审批流')}>
-            登记转换模板
+          <button className="btn primary" type="button" onClick={() => void loadContracts()}>
+            {showContracts ? '收起编排步骤契约' : '查看编排步骤契约（只读）'}
           </button>
           <button className="btn" type="button" onClick={() => window.open(`${ENDPOINT}/export`, '_blank')}>
             导出响应转换清单
           </button>
         </div>
       </header>
+
+      {showContracts && (
+        <div className="drawer">
+          <div className="drawer-head">
+            <h3>编排步骤契约 · 转换模块只读消费（步骤顺序与字段清单以查询编排为准）</h3>
+          </div>
+          <table className="data-table compact">
+            <thead>
+              <tr>
+                <th>流程编号</th><th>契约版本</th><th>来源批次</th><th>执行顺序</th>
+                <th>拓扑波次</th><th>并行度</th><th>字段清单</th><th>合并行数</th><th>写入团队</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contracts.map((contract) => (
+                <tr key={String(contract.id)}>
+                  <td>{contract['流程编号']}</td>
+                  <td>v{contract['契约版本']}</td>
+                  <td>#{contract['来源执行批次']}</td>
+                  <td>{(contract['执行顺序'] ?? []).join(' → ')}</td>
+                  <td>{JSON.stringify(contract['拓扑波次'])}</td>
+                  <td>{contract['并行度']}</td>
+                  <td>
+                    <details>
+                      <summary>{(contract['字段清单'] ?? []).length} 个字段</summary>
+                      <ul className="field-list">
+                        {(contract['字段清单'] ?? []).map((field: Row) => (
+                          <li key={field['字段']}>
+                            <strong>{field['字段']}</strong> ← {field['采纳来源步骤']}
+                            <span className="page-desc">（{field['判定依据']}）</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </td>
+                  <td>{contract['合并行数']}</td>
+                  <td>{contract['写入团队']}</td>
+                </tr>
+              ))}
+              {contracts.length === 0 && (
+                <tr><td className="empty-state" colSpan={9}>暂无契约：查询编排执行成功后才会写入</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="stat-row">
         {stats.map((item) => (

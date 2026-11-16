@@ -1,4 +1,4 @@
-"""响应转换接口：维护转换模板，覆盖提交校验、启用模板、停用模板等动作。"""
+"""响应转换接口：维护转换模板，并只读消费查询编排写入的编排步骤契约。"""
 from __future__ import annotations
 
 from typing import Any
@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
+from app.services.contract import contract_service
 from app.services.transform import TransformService
 
 router = APIRouter(prefix="/api/transform", tags=["响应转换"])
@@ -28,6 +29,42 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/contracts/summary", response_model=dict)
+def read_flow_contracts(flow_no: str | None = Query(default=None, description="按流程编号过滤")) -> dict[str, Any]:
+    """转换模块只读消费编排步骤契约：读取与查询编排完全相同的执行顺序与字段清单。
+
+    转换模块不持有契约写权限，任何修改尝试都会得到只读提示。
+    """
+    items = contract_service.list_contracts(flow_no)
+    return {
+        "module": "flow_contract",
+        "readonly": True,
+        "total": len(items),
+        "items": [
+            {
+                "流程编号": item.get("流程编号"),
+                "契约版本": item.get("契约版本"),
+                "来源执行批次": item.get("来源执行批次"),
+                "执行顺序": item.get("执行顺序"),
+                "拓扑波次": item.get("拓扑波次"),
+                "并行度": item.get("并行度"),
+                "字段清单": item.get("字段清单"),
+                "口径优先级判定": item.get("口径优先级判定"),
+                "合并行数": item.get("合并行数"),
+                "写入团队": item.get("写入团队"),
+                "写入时间": item.get("写入时间"),
+            }
+            for item in items
+        ],
+    }
+
+
+@router.post("/contracts/reject-write", response_model=ActionResult)
+def reject_contract_write() -> ActionResult:
+    """显式声明：转换模块不能改编排步骤契约，共享执行结果只读。"""
+    return ActionResult(ok=False, message=contract_service.assert_read_only())
 
 
 @router.get("/{entry_id}", response_model=dict)

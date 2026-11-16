@@ -33,3 +33,22 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .link { border: none; background: none; color: var(--brand); cursor: pointer; padding: 0; }
 .page-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .error-text { color: #b42318; }
+.ok-text { color: #067647; }
+.notice { padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; background: #f0f6ff; border: 1px solid var(--border); }
+.notice.error-text { background: #fef3f2; }
+.team-switch { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.team-switch select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+.flow-actions { flex-wrap: wrap; }
+.primary-link { font-weight: 600; }
+.link:disabled { color: #94a3b8; cursor: not-allowed; }
+.drawer { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; }
+.drawer-head h3 { font-size: 15px; margin: 0; }
+.drawer h4 { font-size: 13px; margin: 14px 0 6px; }
+.drawer-toolbar { display: flex; gap: 8px; margin: 10px 0; }
+.data-table.compact th, .data-table.compact td { padding: 5px 8px; font-size: 12px; }
+.attempt-chip { display: inline-block; margin: 1px 4px 1px 0; padding: 1px 6px; border-radius: 10px; background: #eef2ff; font-size: 11px; }
+.fallback-box { background: #fffaeb; border: 1px solid #fedf89; border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-bottom: 6px; }
+.run-detail { border-top: 1px dashed var(--border); margin-top: 12px; padding-top: 8px; }
+.field-list { margin: 6px 0 0; padding-left: 16px; font-size: 12px; max-width: 420px; }
+.field-list li { margin-bottom: 4px; }
